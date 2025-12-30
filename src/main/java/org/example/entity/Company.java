@@ -7,6 +7,9 @@ import lombok.*;
 import org.example.validator.InvalidNames;
 import org.example.validator.ValidPhoneNumber;
 
+import java.util.Set;
+import java.util.HashSet;
+
 @Entity
 @Table(name = "companies",
         indexes = {
@@ -17,7 +20,7 @@ import org.example.validator.ValidPhoneNumber;
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
-@ToString(callSuper = true)
+@ToString(callSuper = true, exclude = {"vehicles", "employees", "clients"})
 public class Company extends BaseEntity {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -36,4 +39,16 @@ public class Company extends BaseEntity {
     @Column(length = 20)
     @ValidPhoneNumber(message = "Invalid phone number format!")
     private String phone;
+    
+    @OneToMany(mappedBy = "company", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.LAZY)
+    @Builder.Default
+    private Set<Vehicle> vehicles = new HashSet<>();
+    
+    @OneToMany(mappedBy = "company", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.LAZY)
+    @Builder.Default
+    private Set<Employee> employees = new HashSet<>();
+    
+    @OneToMany(mappedBy = "company", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.LAZY)
+    @Builder.Default
+    private Set<Client> clients = new HashSet<>();
 }

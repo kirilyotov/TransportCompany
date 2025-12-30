@@ -9,6 +9,8 @@ import org.example.validator.ValidAmount;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
+import java.util.Set;
+import java.util.HashSet;
 
 @Entity
 @Table(name = "transports",
@@ -22,7 +24,7 @@ import java.time.LocalDateTime;
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
-@ToString(callSuper = true)
+@ToString(callSuper = true, exclude = {"cargo", "payments", "statusHistory"})
 public class Transport extends BaseEntity {
 
     @Id
@@ -73,4 +75,16 @@ public class Transport extends BaseEntity {
     @Enumerated(EnumType.STRING)
     @Column(name = "status")
     private TransportStatus status;
+    
+    @OneToMany(mappedBy = "transport", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.LAZY)
+    @Builder.Default
+    private Set<Cargo> cargo = new HashSet<>();
+    
+    @OneToMany(mappedBy = "transport", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.LAZY)
+    @Builder.Default
+    private Set<Payment> payments = new HashSet<>();
+    
+    @OneToMany(mappedBy = "transport", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.LAZY)
+    @Builder.Default
+    private Set<TransportStatus> statusHistory = new HashSet<>();
 }

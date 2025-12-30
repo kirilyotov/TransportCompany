@@ -11,6 +11,8 @@ import org.example.validator.ValidUCN;
 import org.example.validator.ValidAmount;
 
 import java.math.BigDecimal;
+import java.util.Set;
+import java.util.HashSet;
 
 @Entity
 @Table(name = "employees",
@@ -23,7 +25,7 @@ import java.math.BigDecimal;
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
-@ToString(callSuper = true)
+@ToString(callSuper = true, exclude = {"transports"})
 public class Employee extends BaseEntity {
 
     @Id
@@ -57,4 +59,8 @@ public class Employee extends BaseEntity {
     @JoinColumn(name = "company_id", nullable = false)
     @NotNull(message = "Company cannot be null!")
     private Company company;
+    
+    @OneToMany(mappedBy = "driver", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.LAZY)
+    @Builder.Default
+    private Set<Transport> transports = new HashSet<>();
 }

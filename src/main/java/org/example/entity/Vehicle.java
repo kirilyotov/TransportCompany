@@ -8,6 +8,8 @@ import org.example.entity.enums.VehicleStatus;
 import org.example.entity.enums.VehicleType;
 
 import java.math.BigDecimal;
+import java.util.Set;
+import java.util.HashSet;
 
 @Entity
 @Table(name = "vehicles",
@@ -21,7 +23,7 @@ import java.math.BigDecimal;
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
-@ToString(callSuper = true)
+@ToString(callSuper = true, exclude = {"transports"})
 public class Vehicle extends BaseEntity {
 
     @Id
@@ -52,4 +54,8 @@ public class Vehicle extends BaseEntity {
     @Enumerated(EnumType.STRING)
     @Column(name = "status")
     private VehicleStatus status;
+    
+    @OneToMany(mappedBy = "vehicle", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.LAZY)
+    @Builder.Default
+    private Set<Transport> transports = new HashSet<>();
 }

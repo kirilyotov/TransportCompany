@@ -8,6 +8,9 @@ import org.example.validator.InvalidNames;
 import org.example.validator.ValidEmail;
 import org.example.validator.ValidPhoneNumber;
 
+import java.util.Set;
+import java.util.HashSet;
+
 @Entity
 @Table(name = "clients",
         indexes = {
@@ -20,7 +23,7 @@ import org.example.validator.ValidPhoneNumber;
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
-@ToString(callSuper = true)
+@ToString(callSuper = true, exclude = {"transports", "payments"})
 public class Client extends BaseEntity {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -53,4 +56,12 @@ public class Client extends BaseEntity {
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "company_id")
     private Company company;
+    
+    @OneToMany(mappedBy = "client", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.LAZY)
+    @Builder.Default
+    private Set<Transport> transports = new HashSet<>();
+    
+    @OneToMany(mappedBy = "client", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.LAZY)
+    @Builder.Default
+    private Set<Payment> payments = new HashSet<>();
 }
