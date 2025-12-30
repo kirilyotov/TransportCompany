@@ -1,0 +1,24 @@
+services:
+  mysql:
+    image: mysql:8.0
+    restart: always
+    environment:
+      MYSQL_ROOT_PASSWORD_FILE: /run/secrets/db_root_password
+      MYSQL_DATABASE: transport_company
+      MYSQL_USER: transport_company_user
+      MYSQL_PASSWORD_FILE: /run/secrets/db_user_password
+      MYSQL_ONETIME_PASSWORD: "yes"  # Forces password change on first login
+    ports:
+      - "3306:3306"
+    volumes:
+      - ./data:/var/lib/mysql
+    secrets:
+      - db_root_password
+      - db_user_password
+    command: --initialize-insecure=0  # Disables insecure init
+
+secrets:
+  db_root_password:
+    file: ./secrets/db_root_password.txt
+  db_user_password:
+    file: ./secrets/db_user_password.txt
