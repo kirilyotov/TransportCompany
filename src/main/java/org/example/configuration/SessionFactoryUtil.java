@@ -1,10 +1,13 @@
 package org.example.configuration;
 
-import org.example.entity.Company;
+import org.reflections.Reflections;
 import org.hibernate.SessionFactory;
 import org.hibernate.boot.registry.StandardServiceRegistryBuilder;
 import org.hibernate.cfg.Configuration;
 import org.hibernate.service.ServiceRegistry;
+import jakarta.persistence.Entity;
+
+import java.util.Set;
 
 public class SessionFactoryUtil {
     private static SessionFactory sessionFactory;
@@ -12,7 +15,16 @@ public class SessionFactoryUtil {
     public static SessionFactory getSessionFactory() {
         if (sessionFactory == null) {
             Configuration configuration = new Configuration();
-            configuration.addAnnotatedClass(Company.class);
+            
+            // Auto-scan all @Entity classes in the org.example.entity package
+            Reflections reflections = new Reflections("org.example.entity");
+            Set<Class<?>> entityClasses = reflections.getTypesAnnotatedWith(Entity.class);
+            
+            for (Class<?> entityClass : entityClasses) {
+                configuration.addAnnotatedClass(entityClass);
+                System.out.println("Registered entity: " + entityClass.getSimpleName());
+            }
+            
             ServiceRegistry serviceRegistry =
                     new StandardServiceRegistryBuilder()
                             .applySettings(configuration.getProperties()).build();
