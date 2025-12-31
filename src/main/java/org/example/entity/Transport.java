@@ -4,7 +4,6 @@ import jakarta.persistence.*;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import lombok.*;
-import org.example.entity.enums.TransportStatus;
 import org.example.validator.ValidAmount;
 
 import java.math.BigDecimal;
@@ -32,19 +31,19 @@ public class Transport extends BaseEntity {
     @Column(name = "transport_id")
     private int id;
 
-    @Column(nullable = false, length = 100)
+    @Column(name = "start_point", nullable = false, length = 100)
     @NotBlank(message = "Start point cannot be blank!")
     private String startPoint;
 
-    @Column(nullable = false, length = 100)
+    @Column(name = "end_point", nullable = false, length = 100)
     @NotBlank(message = "End point cannot be blank!")
     private String endPoint;
 
-    @Column(nullable = false)
+    @Column(name= "departure_date", nullable = false)
     @NotNull(message = "Departure date cannot be null!")
     private LocalDateTime departureDate;
 
-    @Column()
+    @Column(name = "arrival_date")
     private LocalDateTime arrivalDate;
 
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
@@ -74,7 +73,7 @@ public class Transport extends BaseEntity {
 
     @Enumerated(EnumType.STRING)
     @Column(name = "status")
-    private TransportStatus status;
+    private org.example.entity.enums.TransportStatus status;
     
     @OneToMany(mappedBy = "transport", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.LAZY)
     @Builder.Default

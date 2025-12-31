@@ -36,7 +36,7 @@ public class Cargo extends BaseEntity {
     @Column(length = 255)
     private String description;
 
-    @Column(precision = 8, scale = 2)
+    @Column(name = "total_weight",precision = 8, scale = 2)
     @ValidAmount(message = "Total weight must be positive if specified!")
     private BigDecimal totalWeight;
 

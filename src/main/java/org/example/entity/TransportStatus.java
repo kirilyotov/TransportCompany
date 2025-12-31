@@ -27,15 +27,15 @@ public class TransportStatus extends BaseEntity {
     @NotNull(message = "Transport cannot be null!")
     private Transport transport;
 
-    @Column(nullable = false)
+    @Column(name = "status_change", nullable = false)
     @NotNull(message = "Status change datetime cannot be null!")
     private LocalDateTime statusChange;
 
-    @Column(length = 50)
+    @Column(name = "old_status",length = 50)
     @NotBlank(message = "Old status cannot be blank!")
     private String oldStatus;
 
-    @Column(length = 50)
+    @Column(name = "new_status",length = 50)
     @NotBlank(message = "New status cannot be blank!")
     private String newStatus;
 
