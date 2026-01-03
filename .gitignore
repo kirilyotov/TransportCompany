@@ -68,3 +68,6 @@ data/undo_001
 data/undo_002
 src/main/resources/db/liquibase/*
 data/*
+gradle/wrapper/*
+.idea/gradle.xml
+.idea/misc.xml
