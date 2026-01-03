@@ -7,12 +7,10 @@ import org.example.entity.Company;
 
 public final class VehicleMapper implements EntityMapper<Vehicle, VehicleDto> {
     
-    private static final VehicleMapper INSTANCE = new VehicleMapper();
-    
-    private VehicleMapper() { }
-    
-    public static VehicleMapper getInstance() {
-        return INSTANCE;
+    private final CompanyDao companyDao;
+
+    public VehicleMapper(CompanyDao companyDao) {
+        this.companyDao = companyDao;
     }
     
     @Override
@@ -27,6 +25,11 @@ public final class VehicleMapper implements EntityMapper<Vehicle, VehicleDto> {
         
         if (dto.id() != null) {
             vehicle.setId(dto.id());
+        }
+        
+        if (dto.companyId() != null) {
+            Company company = companyDao.findById(dto.companyId());
+            vehicle.setCompany(company);
         }
         
         return vehicle;

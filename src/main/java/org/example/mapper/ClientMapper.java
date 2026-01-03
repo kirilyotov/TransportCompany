@@ -1,18 +1,19 @@
 package org.example.mapper;
 
+import org.example.dao.CompanyDao;
 import org.example.dto.ClientDto;
 import org.example.entity.Client;
+import org.example.entity.Company;
 
-public final class ClientMapper {
+public final class ClientMapper implements EntityMapper<Client, ClientDto> {
     
-    private static final ClientMapper INSTANCE = new ClientMapper();
-    
-    private ClientMapper() {}
-    
-    public static ClientMapper getInstance() {
-        return INSTANCE;
+    private final CompanyDao companyDao;
+
+    public ClientMapper(CompanyDao companyDao) {
+        this.companyDao = companyDao;
     }
     
+    @Override
     public Client toEntity(ClientDto dto) {
         Client client = Client.builder()
                 .name(dto.name())
@@ -25,9 +26,16 @@ public final class ClientMapper {
         if (dto.id() != null) {
             client.setId(dto.id());
         }
+        
+        if (dto.companyId() != null) {
+            Company company = companyDao.findById(dto.companyId());
+            client.setCompany(company);
+        }
+        
         return client;
     }
     
+    @Override
     public ClientDto toDto(Client entity) {
         return new ClientDto(
                 entity.getId(),
