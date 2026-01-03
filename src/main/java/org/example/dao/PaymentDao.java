@@ -24,6 +24,17 @@ public class PaymentDao extends BaseDao<Payment, Integer> {
 		}
 	}
 
+	public List<Payment> findByTransportId(Integer transportId) {
+		try (Session session = SessionFactoryUtil.getSessionFactory().openSession()) {
+			return session.createQuery("from Payment p where p.transport.id = :transportId", Payment.class)
+					.setParameter("transportId", transportId)
+					.getResultList();
+		} catch (Exception ex) {
+			log.error("Failed to fetch Payments by transportId {}", transportId, ex);
+			throw new BusinessLogicException("Could not fetch payments by transportId: " + transportId, ex);
+		}
+	}
+
 	public List<Payment> findByStatus(PaymentStatus status) {
 		try (Session session = SessionFactoryUtil.getSessionFactory().openSession()) {
 			return session.createQuery("from Payment p where p.status = :status", Payment.class)

@@ -52,7 +52,7 @@ public class EmployeeDao extends BaseDao<Employee, Integer> {
 
     public boolean employeeExists(int employeeId) {
         try (Session session = SessionFactoryUtil.getSessionFactory().openSession()) {
-            Long count = session.createQuery("select  case when exists (select 1 from Employee e where e.id = :id) then 1 else 0 end", Long.class)
+            Integer count = session.createQuery("select  case when exists (select 1 from Employee e where e.id = :id) then 1 else 0 end", Integer.class)
                     .setParameter("id", employeeId)
                     .uniqueResult();
             return count != null && count > 0;

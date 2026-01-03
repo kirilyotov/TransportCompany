@@ -49,7 +49,7 @@ public class VehicleDao extends BaseDao<Vehicle, Integer> {
 
     public boolean vehicleExists(int vehicleId) {
         try (Session session = SessionFactoryUtil.getSessionFactory().openSession()) {
-            Long count = session.createQuery("select  case when exists (select 1 from Vehicle v where v.id = :id) then 1 else 0 end", Long.class)
+            Integer count = session.createQuery("select  case when exists (select 1 from Vehicle v where v.id = :id) then 1 else 0 end", Integer.class)
                     .setParameter("id", vehicleId)
                     .uniqueResult();
             return count != null && count > 0;

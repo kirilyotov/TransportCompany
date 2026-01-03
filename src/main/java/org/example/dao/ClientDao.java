@@ -39,9 +39,9 @@ public class ClientDao extends BaseDao<Client, Integer> {
 
 	public boolean clientExists(int clientId) {
 		try (Session session = SessionFactoryUtil.getSessionFactory().openSession()) {
-			Long result = session.createQuery(
+			Integer result = session.createQuery(
 					"select case when exists (select 1 from Client c where c.id = :clientId) then 1 else 0 end",
-					Long.class)
+					Integer.class)
 					.setParameter("clientId", clientId)
 					.uniqueResult();
 			return result != null && result == 1;
