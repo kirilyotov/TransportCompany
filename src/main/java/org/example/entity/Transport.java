@@ -4,6 +4,7 @@ import jakarta.persistence.*;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import lombok.*;
+import lombok.experimental.SuperBuilder;
 import org.example.validator.ValidAmount;
 
 import java.math.BigDecimal;
@@ -22,14 +23,14 @@ import java.util.HashSet;
 @Setter
 @NoArgsConstructor
 @AllArgsConstructor
-@Builder
+@SuperBuilder(toBuilder = true)
 @ToString(callSuper = true, exclude = {"cargo", "payments", "statusHistory"})
 public class Transport extends BaseEntity {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     @Column(name = "transport_id")
-    private int id;
+    private Integer id;
 
     @Column(name = "start_point", nullable = false, length = 100)
     @NotBlank(message = "Start point cannot be blank!")

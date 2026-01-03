@@ -5,6 +5,7 @@ import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
 import lombok.*;
+import lombok.experimental.SuperBuilder;
 import org.example.validator.InvalidNames;
 import org.example.validator.ValidPhoneNumber;
 import org.example.validator.ValidUCN;
@@ -24,14 +25,14 @@ import java.util.HashSet;
 @Setter
 @NoArgsConstructor
 @AllArgsConstructor
-@Builder(toBuilder = true)
+@SuperBuilder(toBuilder = true)
 @ToString(callSuper = true, exclude = {"transports"})
 public class Employee extends BaseEntity {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     @Column(name = "employee_id")
-    private int id;
+    private Integer id;
 
     @Column(nullable = false, length = 100)
     @NotBlank(message = "Employee name cannot be blank!")

@@ -4,6 +4,7 @@ import jakarta.persistence.*;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Size;
 import lombok.*;
+import lombok.experimental.SuperBuilder;
 import org.example.validator.InvalidNames;
 import org.example.validator.ValidPhoneNumber;
 
@@ -19,7 +20,7 @@ import java.util.HashSet;
 @Setter
 @NoArgsConstructor
 @AllArgsConstructor
-@Builder(toBuilder = true)
+@SuperBuilder(toBuilder = true)
 @ToString(callSuper = true, exclude = {"vehicles", "employees", "clients"})
 public class Company extends BaseEntity {
     @Id

@@ -4,6 +4,7 @@ import jakarta.persistence.*;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import lombok.*;
+import lombok.experimental.SuperBuilder;
 import org.example.entity.enums.VehicleStatus;
 import org.example.entity.enums.VehicleType;
 
@@ -22,14 +23,14 @@ import java.util.HashSet;
 @Setter
 @NoArgsConstructor
 @AllArgsConstructor
-@Builder(toBuilder = true)
+@SuperBuilder(toBuilder = true)
 @ToString(callSuper = true, exclude = {"transports"})
 public class Vehicle extends BaseEntity {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     @Column(name = "vehicle_id")
-    private int id;
+    private Integer id;
 
     @Column(name = "license_plate", nullable = false, unique = true, length = 20)
     @NotBlank(message = "License plate cannot be blank!")

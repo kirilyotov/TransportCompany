@@ -4,6 +4,7 @@ import jakarta.persistence.*;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Size;
 import lombok.*;
+import lombok.experimental.SuperBuilder;
 import org.example.validator.InvalidNames;
 import org.example.validator.ValidEmail;
 import org.example.validator.ValidPhoneNumber;
@@ -22,13 +23,13 @@ import java.util.HashSet;
 @Setter
 @NoArgsConstructor
 @AllArgsConstructor
-@Builder(toBuilder = true)
+@SuperBuilder(toBuilder = true)
 @ToString(callSuper = true, exclude = {"transports", "payments"})
 public class Client extends BaseEntity {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     @Column(name = "client_id")
-    private int id;
+    private Integer id;
 
     @Column(nullable = false, length = 50)
     @InvalidNames(message = "The name is not valid!")
