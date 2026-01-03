@@ -2,9 +2,12 @@ package org.example.dto;
 
 import org.example.entity.enums.TransportStatus;
 
+import lombok.Builder;
+
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 
+@Builder
 public record TransportDto(
         Integer id,
         String startPoint,

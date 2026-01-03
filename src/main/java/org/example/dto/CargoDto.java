@@ -2,9 +2,12 @@ package org.example.dto;
 
 import org.example.entity.enums.CargoType;
 
+import lombok.Builder;
+
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 
+@Builder
 public record CargoDto(
         Integer id,
         Integer transportId,
