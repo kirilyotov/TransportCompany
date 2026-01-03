@@ -22,7 +22,7 @@ import java.util.HashSet;
 @Setter
 @NoArgsConstructor
 @AllArgsConstructor
-@Builder
+@Builder(toBuilder = true)
 @ToString(callSuper = true, exclude = {"transports"})
 public class Vehicle extends BaseEntity {
 

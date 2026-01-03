@@ -19,13 +19,13 @@ import java.util.HashSet;
 @Setter
 @NoArgsConstructor
 @AllArgsConstructor
-@Builder
+@Builder(toBuilder = true)
 @ToString(callSuper = true, exclude = {"vehicles", "employees", "clients"})
 public class Company extends BaseEntity {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     @Column(name = "company_id")
-    private int id;
+    private Integer id;
     
     @Column(nullable = false, unique = true, length = 100)
     @NotBlank(message = "Company name cannot be blank!")
