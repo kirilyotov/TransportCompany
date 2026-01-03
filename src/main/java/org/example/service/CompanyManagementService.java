@@ -1,22 +1,12 @@
 package org.example.service;
 
-import org.example.dao.CompanyDao;
-import org.example.dao.ClientDao;
-import org.example.dao.EmployeeDao;
-import org.example.dao.VehicleDao;
-import org.example.dto.ClientDto;
-import org.example.dto.CompanyDto;
-import org.example.dto.EmployeeDto;
-import org.example.dto.VehicleDto;
-import org.example.entity.Company;
-import org.example.entity.Client;
-import org.example.entity.Employee;
-import org.example.entity.Vehicle;
-import org.example.mapper.CompanyMapper;
-import org.example.mapper.ClientMapper;
-import org.example.mapper.EmployeeMapper;
-import org.example.mapper.VehicleMapper;
+import org.example.dao.*;
+import org.example.dto.*;
+import org.example.entity.*;
+import org.example.mapper.*;
 
+import java.math.BigDecimal;
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
 import java.util.stream.Collectors;
@@ -33,41 +23,59 @@ public class CompanyManagementService {
     private final ClientDao clientDao;
     private final EmployeeDao employeeDao;
     private final VehicleDao vehicleDao;
+    private final TransportDao transportDao;
+    private final PaymentDao paymentDao;
+    private final CargoDao cargoDao;
     
     // Mappers
     private final CompanyMapper companyMapper;
     private final ClientMapper clientMapper;
     private final EmployeeMapper employeeMapper;
     private final VehicleMapper vehicleMapper;
+    private final TransportMapper transportMapper;
+    private final PaymentMapper paymentMapper;
+    private final CargoMapper cargoMapper;
 
     public CompanyManagementService() {
         this.companyDao = new CompanyDao();
         this.clientDao = new ClientDao();
         this.employeeDao = new EmployeeDao();
         this.vehicleDao = new VehicleDao();
+        this.transportDao = new TransportDao();
+        this.paymentDao = new PaymentDao();
+        this.cargoDao = new CargoDao();
+        
         this.companyMapper = CompanyMapper.getInstance();
-        this.clientMapper =  ClientMapper.getInstance();
-        this.employeeMapper = EmployeeMapper.getInstance();
-        this.vehicleMapper = VehicleMapper.getInstance();
+        this.clientMapper =  new ClientMapper(this.companyDao);
+        this.employeeMapper = new EmployeeMapper(this.companyDao);
+        this.vehicleMapper = new VehicleMapper(this.companyDao);
+        this.transportMapper = new TransportMapper(vehicleDao, employeeDao, clientDao, companyDao);
+        this.paymentMapper = new PaymentMapper(transportDao, clientDao);
+        this.cargoMapper = new CargoMapper(transportDao);
     }
     
     public CompanyManagementService(CompanyDao companyDao, ClientDao clientDao, 
-                                   EmployeeDao employeeDao, VehicleDao vehicleDao) {
+                                   EmployeeDao employeeDao, VehicleDao vehicleDao,
+                                   TransportDao transportDao, PaymentDao paymentDao, CargoDao cargoDao) {
         this.companyDao = companyDao;
         this.clientDao = clientDao;
         this.employeeDao = employeeDao;
         this.vehicleDao = vehicleDao;
+        this.transportDao = transportDao;
+        this.paymentDao = paymentDao;
+        this.cargoDao = cargoDao;
+        
         this.companyMapper = CompanyMapper.getInstance();
-        this.clientMapper = ClientMapper.getInstance();
-        this.employeeMapper = EmployeeMapper.getInstance();
-        this.vehicleMapper = VehicleMapper.getInstance();
+        this.clientMapper = new ClientMapper(this.companyDao);
+        this.employeeMapper = new EmployeeMapper(this.companyDao);
+        this.vehicleMapper = new VehicleMapper(this.companyDao);
+        this.transportMapper = new TransportMapper(vehicleDao, employeeDao, clientDao, companyDao);
+        this.paymentMapper = new PaymentMapper(transportDao, clientDao);
+        this.cargoMapper = new CargoMapper(transportDao);
     }
 
     // ==================== COMPANY OPERATIONS ====================
     
-    /**
-     * Creates a new company.
-     */
     public CompanyDto createCompany(CompanyDto dto) {
         if (dto.id() != null) {
             throw new IllegalArgumentException("Cannot create company with specified ID.");
@@ -77,91 +85,59 @@ public class CompanyManagementService {
         return companyMapper.toDto(saved);
     }
     
-    /**
-     * Creates a new company with name, address, and phone.
-     */
     public CompanyDto createCompany(String name, String address, String phone) {
         CompanyDto dto = CompanyDto.create(name, address, phone);
         return createCompany(dto);
     }
     
-    /**
-     * Updates an existing company.
-     */
     public CompanyDto updateCompany(int id, CompanyDto dto) {
         validateCompanyExists(id);
-
         Company existing = companyDao.findById(id);
-        
         Company.CompanyBuilder builder = existing.toBuilder();
-        
         Optional.ofNullable(dto.name()).ifPresent(builder::name);
         Optional.ofNullable(dto.address()).ifPresent(builder::address);
         Optional.ofNullable(dto.phone()).ifPresent(builder::phone);
-        
         Company updated = companyDao.update(builder.build());
         return companyMapper.toDto(updated);
     }
     
-    /**
-     * Gets a company by ID.
-     */
     public CompanyDto getCompany(int id) {
         Company entity = companyDao.findById(id);
         return companyMapper.toDto(entity);
     }
     
-    /**
-     * Gets all companies.
-     */
     public List<CompanyDto> getAllCompanies() {
         return companyDao.findAll().stream()
                 .map(companyMapper::toDto)
                 .collect(Collectors.toList());
     }
     
-    /**
-     * Searches companies by name.
-     */
     public List<CompanyDto> searchCompaniesByName(String name) {
         return companyDao.findByNameContaining(name).stream()
                 .map(companyMapper::toDto)
                 .collect(Collectors.toList());
     }
     
+    public List<CompanyRevenueDto> getCompaniesSortedByRevenue(LocalDateTime from, LocalDateTime to) {
+        return companyDao.fetchRevenueOrdered(from, to);
+    }
     
-    /**
-     * Deletes a company (with all its related data).
-     */
     public void deleteCompany(int id) {
-        // Delete all clients first
-        companyDao.findById(id); // Verify company exists
-        List<Client> clients = clientDao.findByCompanyId(id);
-        clients.forEach(c -> clientDao.deleteById(c.getId()));
-        
-        // Delete all employees
-        List<Employee> employees = employeeDao.findByCompanyId(id);
-        employees.forEach(e -> employeeDao.deleteById(e.getId()));
-        
-        // Delete all vehicles
-        List<Vehicle> vehicles = vehicleDao.findByCompanyId(id);
-        vehicles.forEach(v -> vehicleDao.deleteById(v.getId()));
-        
-        // Finally delete the company
+        companyDao.findById(id);
+        List<Transport> transports = transportDao.findByCompanyId(id);
+        for (Transport transport : transports) {
+            List<Payment> payments = paymentDao.findByTransportId(transport.getId());
+            payments.forEach(p -> paymentDao.deleteById(p.getId()));
+        }
+        transports.forEach(t -> transportDao.deleteById(t.getId()));
         companyDao.deleteById(id);
     }
 
     // ==================== CLIENT OPERATIONS ====================
     
-    /**
-     * Adds a new client to a company.
-     */
     public ClientDto addClient(int companyId, ClientDto clientDto) {
         validateCompanyExists(companyId);
-        
-        // Create client with company assignment
         ClientDto clientWithCompany =  ClientDto.builder()
-            .id(companyId)
             .name(clientDto.name())
             .surname(clientDto.surname())
             .phone(clientDto.phone())
@@ -169,15 +145,11 @@ public class CompanyManagementService {
             .address(clientDto.address())
             .companyId(companyId)
             .build();
-        
         Client entity = clientMapper.toEntity(clientWithCompany);
         Client saved = clientDao.save(entity);
         return clientMapper.toDto(saved);
     }
     
-    /**
-     * Gets all clients for a company.
-     */
     public List<ClientDto> getCompanyClients(int companyId) {
         validateCompanyExists(companyId);
         return clientDao.findByCompanyId(companyId).stream()
@@ -185,12 +157,8 @@ public class CompanyManagementService {
                 .collect(Collectors.toList());
     }
     
-    /**
-     * Updates a client.
-     */
     public ClientDto updateClient(int clientId, ClientDto dto) {
         validateClientExists(clientId);
-
         Client existing = clientDao.findById(clientId);
         Client.ClientBuilder builder = existing.toBuilder();
         Optional.ofNullable(dto.name()).ifPresent(builder::name);
@@ -202,9 +170,6 @@ public class CompanyManagementService {
         return clientMapper.toDto(updated);
     }
     
-    /**
-     * Gets a client by ID.
-     */
     public ClientDto getClient(int clientId) {
         if (!clientDao.clientExists(clientId)) {
             throw new IllegalArgumentException("Client with ID " + clientId + " does not exist.");
@@ -213,25 +178,15 @@ public class CompanyManagementService {
         return clientMapper.toDto(entity);
     }
     
-    /**
-     * Removes a client from a company.
-     */
     public void removeClient(int clientId) {
         validateClientExists(clientId);
         clientDao.deleteById(clientId);
     }
     
-    /**
-     * Transfers a client to another company.
-     */
     public ClientDto transferClient(int clientId, int newCompanyId) {
         validateCompanyExists(newCompanyId);
         validateClientExists(clientId);
-        
-        // Get existing client
         Client client = clientDao.findById(clientId);
-        
-        // Update with new company
         client.setCompany(companyDao.findById(newCompanyId));
         Client updated = clientDao.update(client);
         return clientMapper.toDto(updated);
@@ -239,13 +194,8 @@ public class CompanyManagementService {
 
     // ==================== EMPLOYEE OPERATIONS ====================
     
-    /**
-     * Adds a new employee to a company.
-     */
     public EmployeeDto addEmployee(int companyId, EmployeeDto employeeDto) {
        validateCompanyExists(companyId);
-        
-        // Create employee with company assignment
         EmployeeDto employeeWithCompany = EmployeeDto.builder()
             .name(employeeDto.name())
             .ucn(employeeDto.ucn())
@@ -253,27 +203,19 @@ public class CompanyManagementService {
             .salary(employeeDto.salary())
             .companyId(companyId)
             .build();
-        
         Employee entity = employeeMapper.toEntity(employeeWithCompany);
         Employee saved = employeeDao.save(entity);
         return employeeMapper.toDto(saved);
     }
     
-    /**
-     * Gets all employees for a company.
-     */
     public List<EmployeeDto> getCompanyEmployees(int companyId) {
         validateCompanyExists(companyId);
         validateEmployeeExists(companyId);
-
         return employeeDao.findByCompanyId(companyId).stream()
                 .map(employeeMapper::toDto)
                 .collect(Collectors.toList());
     }
     
-    /**
-     * Updates an employee.
-     */
     public EmployeeDto updateEmployee(int employeeId, EmployeeDto dto) {
         validateEmployeeExists(employeeId);
         Employee existing = employeeDao.findById(employeeId);
@@ -287,49 +229,41 @@ public class CompanyManagementService {
         return employeeMapper.toDto(updated);
     }
     
-    /**
-     * Gets an employee by ID.
-     */
     public EmployeeDto getEmployee(int employeeId) {
         Employee entity = employeeDao.findById(employeeId);
         return employeeMapper.toDto(entity);
     }
     
-    /**
-     * Removes an employee from a company.
-     */
     public void removeEmployee(int employeeId) {
         validateEmployeeExists(employeeId);
-
         employeeDao.deleteById(employeeId);
     }
     
-    /**
-     * Transfers an employee to another company.
-     */
     public EmployeeDto transferEmployee(int employeeId, int newCompanyId) {
         validateEmployeeExists(employeeId);
         validateCompanyExists(newCompanyId);
-                
-        // Get existing employee
         Employee employee = employeeDao.findById(employeeId);
-        
-        // Update with new company
         employee.setCompany(companyDao.findById(newCompanyId));
         Employee updated = employeeDao.update(employee);
         return employeeMapper.toDto(updated);
     }
+    
+    public List<EmployeeDto> filterEmployeesByQualification(String qualification) {
+        return employeeDao.findByQualificationContains(qualification).stream()
+                .map(employeeMapper::toDto)
+                .collect(Collectors.toList());
+    }
+    
+    public List<EmployeeDto> filterEmployeesBySalary(BigDecimal min, BigDecimal max) {
+        return employeeDao.findBySalaryBetween(min, max).stream()
+                .map(employeeMapper::toDto)
+                .collect(Collectors.toList());
+    }
 
     // ==================== VEHICLE OPERATIONS ====================
     
-    /**
-     * Adds a new vehicle to a company.
-     */
     public VehicleDto addVehicle(int companyId, VehicleDto vehicleDto) {
-        // Verify company exists
         validateCompanyExists(companyId);
-        
-        // Create vehicle with company assignment
         VehicleDto vehicleWithCompany = VehicleDto.builder()
         .licensePlate(vehicleDto.licensePlate())
         .type(vehicleDto.type())
@@ -338,68 +272,159 @@ public class CompanyManagementService {
         .companyId(companyId)
         .status(vehicleDto.status())
         .build();
-
-        
         Vehicle entity = vehicleMapper.toEntity(vehicleWithCompany);
         Vehicle saved = vehicleDao.save(entity);
         return vehicleMapper.toDto(saved);
     }
     
-    /**
-     * Gets all vehicles for a company.
-     */
     public List<VehicleDto> getCompanyVehicles(int companyId) {
         validateCompanyExists(companyId);
-
         return vehicleDao.findByCompanyId(companyId).stream()
                 .map(vehicleMapper::toDto)
                 .collect(Collectors.toList());
     }
     
-    /**
-     * Updates a vehicle.
-     */
     public VehicleDto updateVehicle(int vehicleId, VehicleDto dto) {
         validateVehicleExists(vehicleId);
+        Vehicle existing = vehicleDao.findById(vehicleId);
+        Vehicle.VehicleBuilder builder = existing.toBuilder();
 
-        Vehicle entity = vehicleMapper.toEntity(dto);
-        entity.setId(vehicleId);
-        Vehicle updated = vehicleDao.update(entity);
+        Optional.ofNullable(dto.licensePlate()).ifPresent(builder::licensePlate);
+        Optional.ofNullable(dto.type()).ifPresent(builder::type);
+        Optional.ofNullable(dto.capacityWeight()).ifPresent(builder::capacityWeight);
+        Optional.ofNullable(dto.capacityPassengers()).ifPresent(builder::capacityPassengers);
+        Optional.ofNullable(dto.status()).ifPresent(builder::status);
+        if (dto.companyId() != null) builder.company(companyDao.findById(dto.companyId()));
+
+        Vehicle updated = vehicleDao.update(builder.build());
         return vehicleMapper.toDto(updated);
     }
     
-    /**
-     * Gets a vehicle by ID.
-     */
     public VehicleDto getVehicle(int vehicleId) {
         Vehicle entity = vehicleDao.findById(vehicleId);
         return vehicleMapper.toDto(entity);
     }
     
-    /**
-     * Removes a vehicle from a company.
-     */
     public void removeVehicle(int vehicleId) {
         validateVehicleExists(vehicleId);
-
         vehicleDao.deleteById(vehicleId);
     }
     
-    /**
-     * Transfers a vehicle to another company.
-     */
     public VehicleDto transferVehicle(int vehicleId, int newCompanyId) {
         validateVehicleExists(vehicleId);
         validateCompanyExists(newCompanyId);
-        
-        // Get existing vehicle
         Vehicle vehicle = vehicleDao.findById(vehicleId);
-        
-        // Update with new company
         vehicle.setCompany(companyDao.findById(newCompanyId));
         Vehicle updated = vehicleDao.update(vehicle);
         return vehicleMapper.toDto(updated);
     }
+
+    // ==================== TRANSPORT OPERATIONS ====================
+    
+    public TransportDto createTransport(TransportDto dto) {
+        if (dto.id() != null) {
+            throw new IllegalArgumentException("Cannot create transport with specified ID.");
+        }
+        if (dto.companyId() != null) {
+            validateCompanyExists(dto.companyId());
+        }
+        Transport entity = transportMapper.toEntity(dto);
+        Transport saved = transportDao.save(entity);
+        return transportMapper.toDto(saved);
+    }
+    
+    public TransportDto updateTransport(int transportId, TransportDto dto) {
+        Transport existing = transportDao.findById(transportId);
+        Transport.TransportBuilder builder = existing.toBuilder();
+        Optional.ofNullable(dto.startPoint()).ifPresent(builder::startPoint);
+        Optional.ofNullable(dto.endPoint()).ifPresent(builder::endPoint);
+        Optional.ofNullable(dto.departureDate()).ifPresent(builder::departureDate);
+        Optional.ofNullable(dto.arrivalDate()).ifPresent(builder::arrivalDate);
+        Optional.ofNullable(dto.price()).ifPresent(builder::price);
+        Optional.ofNullable(dto.status()).ifPresent(builder::status);
+        if (dto.vehicleId() != null) builder.vehicle(vehicleDao.findById(dto.vehicleId()));
+        if (dto.driverId() != null) builder.driver(employeeDao.findById(dto.driverId()));
+        if (dto.clientId() != null) builder.client(clientDao.findById(dto.clientId()));
+        if (dto.companyId() != null) builder.company(companyDao.findById(dto.companyId()));
+        Transport updated = transportDao.update(builder.build());
+        return transportMapper.toDto(updated);
+    }
+    
+    public TransportDto getTransport(int transportId) {
+        Transport entity = transportDao.findById(transportId);
+        return transportMapper.toDto(entity);
+    }
+    
+    public List<TransportDto> getCompanyTransports(int companyId) {
+        validateCompanyExists(companyId);
+        return transportDao.findByCompanyId(companyId).stream()
+                .map(transportMapper::toDto)
+                .collect(Collectors.toList());
+    }
+    
+    public void deleteTransport(int transportId) {
+        transportDao.deleteById(transportId);
+    }
+    
+    public List<TransportDto> searchTransportsByDestination(String destination) {
+        return transportDao.findByDestination(destination).stream()
+                .map(transportMapper::toDto)
+                .collect(Collectors.toList());
+    }
+
+    // ==================== PAYMENT OPERATIONS ====================
+    
+    public PaymentDto createPayment(PaymentDto dto) {
+        if (dto.id() != null) {
+            throw new IllegalArgumentException("Cannot create payment with specified ID.");
+        }
+        Payment entity = paymentMapper.toEntity(dto);
+        Payment saved = paymentDao.save(entity);
+        return paymentMapper.toDto(saved);
+    }
+    
+    public List<PaymentDto> getOutstandingPayments(int clientId) {
+        validateClientExists(clientId);
+        return paymentDao.findOutstandingByClient(clientId).stream()
+                .map(paymentMapper::toDto)
+                .collect(Collectors.toList());
+    }
+    
+    public PaymentDto updatePayment(int paymentId, PaymentDto dto) {
+        paymentDao.findById(paymentId);
+        Payment entity = paymentMapper.toEntity(dto);
+        entity.setId(paymentId);
+        Payment updated = paymentDao.update(entity);
+        return paymentMapper.toDto(updated);
+    }
+
+    public void deletePayment(int paymentId) {
+        paymentDao.deleteById(paymentId);
+    }
+
+    // ==================== CARGO OPERATIONS ====================
+    
+    public CargoDto addCargo(int transportId, CargoDto dto) {
+        transportDao.findById(transportId);
+        CargoDto cargoWithTransport = CargoDto.builder()
+                .transportId(transportId)
+                .type(dto.type())
+                .description(dto.description())
+                .totalWeight(dto.totalWeight())
+                .passengerCount(dto.passengerCount())
+                .build();
+        Cargo entity = cargoMapper.toEntity(cargoWithTransport);
+        Cargo saved = cargoDao.save(entity);
+        return cargoMapper.toDto(saved);
+    }
+    
+    public List<CargoDto> getTransportCargo(int transportId) {
+        return cargoDao.findByTransportId(transportId).stream()
+                .map(cargoMapper::toDto)
+                .collect(Collectors.toList());
+    }
+
+    // ==================== VALIDATION HELPERS ====================
 
     private void validateCompanyExists(int companyId) {
         if (!companyDao.companyExists(companyId)) {
