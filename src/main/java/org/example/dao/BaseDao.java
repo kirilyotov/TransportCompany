@@ -29,6 +29,15 @@ public abstract class BaseDao<T, ID extends Serializable> {
         this.sessionFactory = SessionFactoryUtil.getSessionFactory();
     }
 
+    /**
+     * Saves a new entity to the database.
+     * 
+     * @param entity the entity to save
+     * @return the saved entity with generated ID and timestamps
+     * @throws ValidationException if entity validation fails
+     * @throws DatabaseConstraintException if database constraint is violated
+     * @throws BusinessLogicException if save operation fails
+     */
     public T save(T entity) {
         Transaction tx = null;
         try (Session session = sessionFactory.openSession()) {
@@ -38,6 +47,14 @@ public abstract class BaseDao<T, ID extends Serializable> {
             session.refresh(entity); 
             log.info("Saved {}", clazz.getSimpleName());
             return entity;
+        } catch (IllegalStateException ex) {
+            // Transaction already inactive, rollback not possible
+            log.error("Transaction already inactive for {}: {}", clazz.getSimpleName(), ex.getMessage());
+            throw new BusinessLogicException("Transaction state error while saving " + clazz.getSimpleName(), ex);
+        } catch (RollbackException ex) {
+            rollback(tx);
+            log.error("Transaction rollback during save for {}: {}", clazz.getSimpleName(), ex.getMessage());
+            throw new BusinessLogicException("Transaction failed while saving " + clazz.getSimpleName(), ex);
         } catch (jakarta.validation.ConstraintViolationException ex) {
             rollback(tx);
             log.debug("Validation failed for {}: {}", clazz.getSimpleName(), ex.getMessage());
@@ -53,6 +70,14 @@ public abstract class BaseDao<T, ID extends Serializable> {
         }
     }
 
+    /**
+     * Finds an entity by its ID.
+     * 
+     * @param id the entity ID
+     * @return the entity
+     * @throws EntityNotFoundException if entity with given ID does not exist
+     * @throws BusinessLogicException if retrieval operation fails
+     */
     public T findById(ID id) {
         try (Session session = sessionFactory.openSession()) {
             T result = session.find(clazz, id);
@@ -69,6 +94,12 @@ public abstract class BaseDao<T, ID extends Serializable> {
         }
     }
 
+    /**
+     * Retrieves all entities from the database.
+     * 
+     * @return list of all entities
+     * @throws BusinessLogicException if retrieval operation fails
+     */
     public List<T> findAll() {
         try (Session session = sessionFactory.openSession()) {
             return session.createQuery("from " + clazz.getSimpleName(), clazz).getResultList();
@@ -78,6 +109,15 @@ public abstract class BaseDao<T, ID extends Serializable> {
         }
     }
 
+    /**
+     * Updates an existing entity in the database.
+     * 
+     * @param entity the entity to update
+     * @return the updated entity with refreshed timestamps
+     * @throws ValidationException if entity validation fails
+     * @throws DatabaseConstraintException if database constraint is violated
+     * @throws BusinessLogicException if update operation fails
+     */
     public T update(T entity) {
         Transaction tx = null;
         try (Session session = sessionFactory.openSession()) {
@@ -87,17 +127,15 @@ public abstract class BaseDao<T, ID extends Serializable> {
             session.refresh(merged);  // Refresh to get database-generated values
             log.info("Updated {}", clazz.getSimpleName());
             return merged;
-            
-        } catch(IllegalStateException ex) {
-            // Connection might be closed, rollback not needed
-            log.debug("Transaction already closed, rollback skipped for {}", clazz.getSimpleName());
-            throw ex;
+        } catch (IllegalStateException ex) {
+            // Transaction already inactive, rollback not possible
+            log.error("Transaction already inactive for {}: {}", clazz.getSimpleName(), ex.getMessage());
+            throw new BusinessLogicException("Transaction state error while updating " + clazz.getSimpleName(), ex);
         } catch (RollbackException ex) {
             rollback(tx);
-            log.debug("Transaction rollback for {}: {}", clazz.getSimpleName(), ex.getMessage());
-            throw new BusinessLogicException("Transaction rollback for " + clazz.getSimpleName(), ex);
-        }
-        catch (jakarta.validation.ConstraintViolationException ex) {
+            log.error("Transaction rollback during update for {}: {}", clazz.getSimpleName(), ex.getMessage());
+            throw new BusinessLogicException("Transaction failed while updating " + clazz.getSimpleName(), ex);
+        } catch (jakarta.validation.ConstraintViolationException ex) {
             rollback(tx);
             log.error("Validation failed for {}", clazz.getSimpleName(), ex);
             throw ValidationException.fromConstraintViolations(ex);
@@ -112,6 +150,14 @@ public abstract class BaseDao<T, ID extends Serializable> {
         }
     }
 
+    /**
+     * Deletes an entity by its ID.
+     * 
+     * @param id the entity ID
+     * @throws EntityNotFoundException if entity with given ID does not exist
+     * @throws DatabaseConstraintException if entity cannot be deleted due to foreign key constraints
+     * @throws BusinessLogicException if delete operation fails
+     */
     public void deleteById(ID id) {
         Transaction tx = null;
         try (Session session = sessionFactory.openSession()) {
@@ -123,10 +169,21 @@ public abstract class BaseDao<T, ID extends Serializable> {
             session.remove(entity);
             tx.commit();
             log.info("Deleted {} with id {}", clazz.getSimpleName(), id);
+        } catch (IllegalStateException ex) {
+            log.error("Transaction already inactive for {}: {}", clazz.getSimpleName(), ex.getMessage());
+            throw new BusinessLogicException("Transaction state error while deleting " + clazz.getSimpleName(), ex);
+        } catch (RollbackException ex) {
+            rollback(tx);
+            log.error("Transaction rollback during delete for {}: {}", clazz.getSimpleName(), ex.getMessage());
+            throw new BusinessLogicException("Transaction failed while deleting " + clazz.getSimpleName(), ex);
         } catch (EntityNotFoundException ex) {
             rollback(tx);
             log.warn(ex.getMessage());
             throw ex;
+        } catch (org.hibernate.exception.ConstraintViolationException ex) {
+            rollback(tx);
+            log.error("Cannot delete {} with id {} due to foreign key constraint: {}", clazz.getSimpleName(), id, ex.getSQLException().getMessage());
+            throw DatabaseConstraintException.fromHibernateConstraintViolation(ex);
         } catch (Exception ex) {
             rollback(tx);
             log.error("Failed to delete {} with id {}", clazz.getSimpleName(), id, ex);
@@ -134,6 +191,13 @@ public abstract class BaseDao<T, ID extends Serializable> {
         }
     }
 
+    /**
+     * Deletes an entity.
+     * 
+     * @param entity the entity to delete
+     * @throws DatabaseConstraintException if entity cannot be deleted due to foreign key constraints
+     * @throws BusinessLogicException if delete operation fails
+     */
     public void delete(T entity) {
         Transaction tx = null;
         try (Session session = sessionFactory.openSession()) {
@@ -141,6 +205,17 @@ public abstract class BaseDao<T, ID extends Serializable> {
             session.remove(entity);
             tx.commit();
             log.info("Deleted {}", clazz.getSimpleName());
+        } catch (IllegalStateException ex) {
+            log.error("Transaction already inactive for {}: {}", clazz.getSimpleName(), ex.getMessage());
+            throw new BusinessLogicException("Transaction state error while deleting " + clazz.getSimpleName(), ex);
+        } catch (RollbackException ex) {
+            rollback(tx);
+            log.error("Transaction rollback during delete for {}: {}", clazz.getSimpleName(), ex.getMessage());
+            throw new BusinessLogicException("Transaction failed while deleting " + clazz.getSimpleName(), ex);
+        } catch (org.hibernate.exception.ConstraintViolationException ex) {
+            rollback(tx);
+            log.error("Cannot delete {} due to foreign key constraint: {}", clazz.getSimpleName(), ex.getSQLException().getMessage());
+            throw DatabaseConstraintException.fromHibernateConstraintViolation(ex);
         } catch (Exception ex) {
             rollback(tx);
             log.error("Failed to delete {}", clazz.getSimpleName(), ex);
