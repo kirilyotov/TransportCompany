@@ -21,6 +21,7 @@
 	<include file="changelog-1.10.sql" relativeToChangelogFile="true" />
 	<include file="changelog-1.11.sql" relativeToChangelogFile="true" />
 	<include file="changelog-1.12.sql" relativeToChangelogFile="true" />
+	<include file="changelog-1.13.sql" relativeToChangelogFile="true" />
 
 
 
